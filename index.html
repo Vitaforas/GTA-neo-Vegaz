@@ -1,0 +1,1279 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>GTA neo Vegas</title>
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  overflow:hidden;background:#080e19;color:white;
+  font-family:Arial,sans-serif;
+}
+canvas{display:block}
+button{
+  background:#071b2b;color:#00eaff;border:1px solid #00eaff;
+  padding:13px 24px;border-radius:5px;font-weight:bold;
+  cursor:pointer;letter-spacing:1px;
+}
+button:hover{background:#00bcd4;color:#001019}
+#start{
+  position:absolute;inset:0;z-index:10;
+  display:flex;align-items:center;justify-content:center;
+  flex-direction:column;text-align:center;gap:22px;
+  background:radial-gradient(ellipse at center,#142d49,#030711 75%);
+  padding:20px;
+}
+#start h1{
+  font-size:clamp(40px,8vw,85px);
+  letter-spacing:7px;color:#00eaff;
+  text-shadow:0 0 20px #00eaff,0 0 60px #008cff;
+}
+#start h1 span{color:#ff168d}
+#start p{max-width:650px;color:#b5c9dc;line-height:1.8}
+#start .buttons{display:flex;gap:15px;flex-wrap:wrap;justify-content:center}
+#start .pink{border-color:#ff168d;color:#ff168d}
+#hud{position:absolute;inset:0;pointer-events:none}
+.panel{
+  background:rgba(3,12,25,.88);
+  border:1px solid #00bfe0;
+  border-radius:7px;padding:12px 15px;
+  box-shadow:0 0 15px #00cfff22;
+}
+#stats{position:absolute;top:15px;left:15px;min-width:190px;line-height:1.9;font-size:14px}
+#stats b{color:#00eaff}
+#credits{color:#ffd34d}
+#mission{
+  position:absolute;top:15px;left:50%;
+  transform:translateX(-50%);
+  text-align:center;max-width:65vw;
+}
+#map{
+  position:absolute;right:15px;top:15px;
+  width:150px;height:150px;
+  background:#091522;border:2px solid #00dfff;
+  border-radius:7px;
+}
+#hint{
+  position:absolute;bottom:25px;left:50%;
+  transform:translateX(-50%);
+  color:#00eaff;font-weight:bold;
+  text-shadow:0 0 10px #00eaff;
+  text-align:center;
+}
+#toast{
+  position:absolute;top:24%;left:0;width:100%;
+  text-align:center;color:#ffd34d;font-weight:bold;
+  text-shadow:0 0 12px #ffcc00;
+}
+#help{
+  position:absolute;left:15px;bottom:12px;
+  font-size:11px;line-height:1.8;color:#b7c9d9;
+  text-shadow:0 2px 4px black;
+}
+#touch{display:none;position:absolute;inset:0;pointer-events:none}
+#stick{
+  position:absolute;bottom:25px;left:22px;
+  width:125px;height:125px;border-radius:50%;
+  border:2px solid #00eaff88;background:#00eaff18;
+  pointer-events:auto;touch-action:none;
+}
+#knob{
+  position:absolute;left:50%;top:50%;
+  width:45px;height:45px;border-radius:50%;
+  background:#00dfff;
+  transform:translate(-50%,-50%);
+}
+#look{
+  position:absolute;right:0;top:20%;width:42%;height:55%;
+  pointer-events:auto;touch-action:none;
+}
+#use{
+  position:absolute;right:25px;bottom:35px;
+  width:70px;height:70px;border-radius:50%;
+  pointer-events:auto;touch-action:none;padding:0;
+}
+#touchFire{
+  position:absolute;right:110px;bottom:35px;
+  width:70px;height:70px;border-radius:50%;
+  pointer-events:auto;touch-action:none;padding:0;
+}
+#shop{
+  position:absolute;inset:0;z-index:12;
+  background:#030914ee;
+  display:flex;align-items:center;justify-content:center;
+  flex-direction:column;gap:15px;
+}
+#shop h1{color:#00eaff;font-size:42px}
+#shop button{min-width:230px}
+.hidden{display:none!important}
+@media(max-width:650px){
+  #map{width:105px;height:105px}
+  #stats{font-size:11px;min-width:145px;padding:8px}
+  #mission{top:auto;bottom:165px;font-size:11px}
+  #help{display:none}
+}
+</style>
+</head>
+
+<body>
+
+<div id="start">
+  <h1>GTA<span>neo</span></h1>
+  <h2>Vegas · OPEN WORLD</h2>
+  <p>
+    Willkommen in Neo-Kowloon.<br>
+    Eine riesige Cyberpunk-Stadt wartet auf dich.
+    Erkunde die Straßen, entdecke die Gebäude,
+    steige in Fahrzeuge und werde zur Legende der Stadt.
+  </p>
+  <div class="buttons">
+    <button onclick="startGame('police')">POLIZEI SPIELEN</button>
+    <button class="pink" onclick="startGame('robber')">RÄUBER SPIELEN</button>
+  </div>
+  <p>WASD: Bewegen · Maus: Umschauen · E: Fahrzeug benutzen · SHIFT: Sprint</p>
+</div>
+
+<div id="hud">
+  <div id="stats" class="panel">
+    ❤️ Gesundheit: <b id="hp">100</b><br>
+    💰 Credits: <b id="credits">1500</b><br>
+    🚗 Fahrzeug: <b id="vehicle">Zu Fuß</b><br>
+    ⭐ Fahndung: <b id="wanted">☆☆☆☆☆</b>
+  </div>
+
+  <div id="mission" class="panel">NEO-KOWLOON · FREIE ERKUNDUNG</div>
+  <canvas id="map" width="150" height="150"></canvas>
+  <div id="hint"></div>
+  <div id="toast"></div>
+
+  <div id="help">
+    WASD – Bewegung / Fahren<br>
+    MAUS – Kamera drehen<br>
+    E – Einsteigen / Aussteigen<br>
+    SHIFT – Sprint<br>
+    ESC – Maus freigeben
+  </div>
+</div>
+
+<div id="touch">
+  <div id="stick"><div id="knob"></div></div>
+  <div id="look"></div>
+  <button id="use">E</button>
+  <button id="touchFire">F</button>
+</div>
+
+<div id="shop" class="hidden">
+  <h1>CAR DEALER</h1>
+  <h2>FAHRZEUGHÄNDLER</h2>
+  <button onclick="buyCar(0)">KAZE GT – KOSTENLOS</button>
+  <button onclick="buyCar(1)">RONIN V8 – 900 ₡</button>
+  <button onclick="buyCar(2)">NYX PHANTOM – 2200 ₡</button>
+  <button onclick="buyCar(3)">AKIRA TYPE-R – 4500 ₡</button>
+  <button onclick="closeShop()">SCHLIESSEN</button>
+</div>
+
+<script type="module">
+import * as THREE from
+'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+
+/* =================================
+   GRUNDEINSTELLUNGEN
+================================= */
+
+const $ = id => document.getElementById(id);
+const scene = new THREE.Scene();
+
+scene.background = new THREE.Color(0x91a9bb);
+scene.fog = new THREE.Fog(0x91a9bb,180,850);
+
+const camera = new THREE.PerspectiveCamera(
+  68,innerWidth/innerHeight,.1,1500
+);
+
+const renderer = new THREE.WebGLRenderer({
+  antialias:true
+});
+
+renderer.setSize(innerWidth,innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.15;
+
+document.body.appendChild(renderer.domElement);
+
+const clock = new THREE.Clock();
+
+const WORLD = 1000;
+const GRID = 100;
+const ROAD = 20;
+
+const rand = (a,b)=>a+Math.random()*(b-a);
+const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
+const vec = (x,y,z)=>new THREE.Vector3(x,y,z);
+
+/* =================================
+   LICHT
+================================= */
+
+scene.add(new THREE.HemisphereLight(
+  0xd8edff,0x394451,2
+));
+
+const sun = new THREE.DirectionalLight(0xffedcf,2.8);
+sun.position.set(-200,300,150);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048,2048);
+sun.shadow.camera.left = -350;
+sun.shadow.camera.right = 350;
+sun.shadow.camera.top = 350;
+sun.shadow.camera.bottom = -350;
+scene.add(sun);
+
+/* =================================
+   MATERIALIEN
+================================= */
+
+const mat = color => new THREE.MeshStandardMaterial({
+  color,
+  roughness:.85
+});
+
+const groundMat = mat(0x65766d);
+const roadMat = mat(0x252a32);
+const sidewalkMat = mat(0x92999c);
+const lineMat = mat(0xe9dcae);
+
+const buildingColors = [
+  0x46596b,0x65727d,0x59616d,
+  0x786b66,0x495c61,0x727b82,
+  0x605e76,0x7a817f
+].map(mat);
+
+const glass = new THREE.MeshStandardMaterial({
+  color:0x8bdcf4,
+  emissive:0x167b9d,
+  emissiveIntensity:.65,
+  roughness:.25
+});
+
+const neonBlue = new THREE.MeshStandardMaterial({
+  color:0x00cfff,
+  emissive:0x00aaff,
+  emissiveIntensity:2
+});
+
+const neonPink = new THREE.MeshStandardMaterial({
+  color:0xff168d,
+  emissive:0xff0077,
+  emissiveIntensity:2
+});
+
+/* =================================
+   HILFSFUNKTIONEN
+================================= */
+
+function createBox(x,y,z,w,h,d,material,parent=scene){
+  const mesh = new THREE.Mesh(
+    new THREE.BoxGeometry(w,h,d),material
+  );
+  mesh.position.set(x,y,z);
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+  parent.add(mesh);
+  return mesh;
+}
+
+/* =================================
+   BODEN UND STRASSEN
+================================= */
+
+const ground = new THREE.Mesh(
+  new THREE.PlaneGeometry(WORLD,WORLD),
+  groundMat
+);
+ground.rotation.x = -Math.PI/2;
+ground.receiveShadow = true;
+scene.add(ground);
+
+// Straßenraster
+for(let i=-5;i<=5;i++){
+  const p=i*GRID;
+
+  createBox(p,.025,0,ROAD,.05,WORLD,roadMat);
+  createBox(0,.025,p,WORLD,.05,ROAD,roadMat);
+
+  // Straßenmarkierungen
+  for(let k=-5;k<=5;k++){
+    if(k===0)continue;
+
+    const z=k*GRID;
+    createBox(p,.06,z,1.1,.04,5,lineMat);
+    createBox(z,.06,p,5,.04,1.1,lineMat);
+  }
+
+  // Gehwege
+  createBox(p+14,.06,0,7,.12,WORLD,sidewalkMat);
+  createBox(p-14,.06,0,7,.12,WORLD,sidewalkMat);
+  createBox(0,.06,p+14,WORLD,.12,7,sidewalkMat);
+  createBox(0,.06,p-14,WORLD,.12,7,sidewalkMat);
+}
+
+/* =================================
+   STADTGEBÄUDE
+================================= */
+
+const buildings=[];
+
+for(let x=-5;x<5;x++){
+  for(let z=-5;z<5;z++){
+
+    if(Math.random()<.08)continue;
+
+    const px=x*GRID+50;
+    const pz=z*GRID+50;
+
+    const w=rand(43,65);
+    const d=rand(43,65);
+    const h=rand(25,115);
+
+    const material=buildingColors[
+      Math.floor(Math.random()*buildingColors.length)
+    ];
+
+    const building=createBox(
+      px,h/2,pz,w,h,d,material
+    );
+
+    buildings.push({
+      x:px,z:pz,w,d,h
+    });
+
+    // Dach
+    createBox(
+      px,h+1,pz,w*.65,2,d*.65,mat(0x343e49)
+    );
+
+    // Neon-Dachwerbung
+    if(Math.random()<.55){
+      const sign=createBox(
+        px,h+4,pz,w*.45,1.2,.7,
+        Math.random()<.5?neonBlue:neonPink
+      );
+      sign.castShadow=false;
+    }
+
+    // Fenster auf Vorder- und Rückseite
+    const rows=Math.floor(h/7);
+
+    for(let row=0;row<rows;row++){
+      for(let col=-2;col<=2;col++){
+
+        const wx=px+col*w*.16;
+        const wy=5+row*6;
+
+        if(wy>h-2)continue;
+
+        createBox(
+          wx,wy,pz+d/2+.04,
+          w*.10,2.2,.12,glass
+        );
+
+        createBox(
+          wx,wy,pz-d/2-.04,
+          w*.10,2.2,.12,glass
+        );
+
+        createBox(
+          px+w/2+.04,wy,pz+col*d*.16,
+          .12,2.2,d*.10,glass
+        );
+      }
+    }
+
+    // Gebäudesockel
+    createBox(
+      px,1.1,pz,w+1,2.2,d+1,mat(0x303b47)
+    );
+  }
+}
+
+/* =================================
+   PALMEN
+================================= */
+
+const palmTrunk=mat(0x745039);
+const palmLeaves=new THREE.MeshStandardMaterial({
+  color:0x287b50,side:THREE.DoubleSide
+});
+
+function createPalm(x,z){
+  const trunk=new THREE.Mesh(
+    new THREE.CylinderGeometry(.35,.6,7,8),
+    palmTrunk
+  );
+  trunk.position.set(x,3.5,z);
+  trunk.castShadow=true;
+  scene.add(trunk);
+
+  for(let i=0;i<7;i++){
+    const a=i*Math.PI*2/7;
+
+    const leaf=new THREE.Mesh(
+      new THREE.ConeGeometry(1.1,7,5),
+      palmLeaves
+    );
+
+    leaf.position.set(
+      x+Math.cos(a)*2,
+      7,
+      z+Math.sin(a)*2
+    );
+
+    leaf.rotation.z=Math.PI/2;
+    leaf.rotation.y=-a;
+    leaf.scale.set(1,1.5,.7);
+    scene.add(leaf);
+  }
+}
+
+for(let x=-5;x<5;x++){
+  for(let z=-5;z<5;z++){
+    const px=x*GRID+50;
+    const pz=z*GRID+50;
+
+    if(Math.random()<.7){
+      createPalm(px-38,pz+37);
+      createPalm(px+38,pz-37);
+    }
+  }
+}
+
+/* =================================
+   STRASSENLAMPEN
+================================= */
+
+const lampMetal=mat(0x343e48);
+const lampGlow=new THREE.MeshStandardMaterial({
+  color:0xffe2a0,
+  emissive:0xffae35,
+  emissiveIntensity:2
+});
+
+for(let x=-5;x<=5;x++){
+  for(let z=-5;z<=5;z++){
+
+    if(Math.random()<.45)continue;
+
+    const px=x*GRID+12;
+    const pz=z*GRID+12;
+
+    createBox(px,4,pz,.35,8,.35,lampMetal);
+    createBox(px+1,8,pz,.5,.3,.5,lampGlow);
+  }
+}
+
+/* =================================
+   SPIELER
+================================= */
+
+const player=new THREE.Group();
+
+const playerBody=new THREE.Mesh(
+  new THREE.CapsuleGeometry(.48,.9,5,10),
+  mat(0x123a59)
+);
+playerBody.position.y=1.25;
+player.add(playerBody);
+
+const playerHead=new THREE.Mesh(
+  new THREE.SphereGeometry(.32,16,12),
+  mat(0xc58c6c)
+);
+playerHead.position.y=2.2;
+player.add(playerHead);
+
+const playerVisor=createBox(
+  0,2.25,.28,.45,.13,.1,neonBlue,player
+);
+
+scene.add(player);
+player.position.set(0,0,0);
+
+/* =================================
+   FAHRZEUGE
+================================= */
+
+const models=[
+  {name:'KAZE GT',price:0,color:0x00cde8,speed:36,accel:25,turn:2.3},
+  {name:'RONIN V8',price:900,color:0xed1685,speed:43,accel:30,turn:2.4},
+  {name:'NYX PHANTOM',price:2200,color:0x853fe5,speed:49,accel:35,turn:2.5},
+  {name:'AKIRA TYPE-R',price:4500,color:0x43e74e,speed:57,accel:42,turn:2.7}
+];
+
+const cars=[];
+const tireMat=mat(0x101318);
+const windowMat=mat(0x132a3c);
+
+function createCar(x,z,index){
+
+  const model=models[index];
+  const group=new THREE.Group();
+
+  const paint=new THREE.MeshStandardMaterial({
+    color:model.color,metalness:.65,roughness:.3
+  });
+
+  createBox(0,.85,0,4.4,1,2.1,paint,group);
+  createBox(-.35,1.6,0,2.3,.8,1.8,windowMat,group);
+  createBox(-.35,2.02,0,1.5,.1,1.7,paint,group);
+
+  for(const side of [-1,1]){
+    for(const front of [-1,1]){
+
+      const wheel=new THREE.Mesh(
+        new THREE.CylinderGeometry(.46,.46,.32,16),
+        tireMat
+      );
+
+      wheel.rotation.x=Math.PI/2;
+      wheel.position.set(front*1.4,.45,side*1.08);
+      group.add(wheel);
+    }
+  }
+
+  const light=new THREE.MeshStandardMaterial({
+    color:0xffffff,
+    emissive:0xffffff,
+    emissiveIntensity:2
+  });
+
+  createBox(2.22,.95,-.65,.1,.25,.35,light,group);
+  createBox(2.22,.95,.65,.1,.25,.35,light,group);
+
+  group.position.set(x,0,z);
+  scene.add(group);
+
+  const car={
+    group,model,index,
+    speed:0,angle:0,
+    occupied:false
+  };
+
+  cars.push(car);
+  return car;
+}
+
+// Fahrzeuge auf den Straßen
+for(let i=0;i<20;i++){
+
+  const roadX=Math.floor(rand(-4,5))*GRID;
+  const roadZ=Math.floor(rand(-4,5))*GRID;
+
+  if(i%2===0){
+    createCar(roadX+rand(-5,5),roadZ+rand(-35,35),i%2);
+  }else{
+    createCar(roadX+rand(-35,35),roadZ+rand(-5,5),i%2);
+  }
+}
+
+// Startfahrzeug
+createCar(7,0,0);
+
+// Händler
+const dealer=vec(-450,0,-450);
+
+const dealerMarker=new THREE.Mesh(
+  new THREE.CylinderGeometry(7,7,.3,32),
+  new THREE.MeshStandardMaterial({
+    color:0x35ff64,
+    emissive:0x16ff33,
+    emissiveIntensity:2
+  })
+);
+dealerMarker.position.set(dealer.x,.25,dealer.z);
+scene.add(dealerMarker);
+
+/* =================================
+   SPIELZUSTAND
+================================= */
+
+let faction='robber';
+let money=1500;
+let hp=100;
+let wanted=0;
+
+let activeCar=null;
+let playing=false;
+
+let yaw=0;
+let pitch=.25;
+
+let mission=null;
+let missionTimer=8;
+
+let toastTimer=0;
+const keys={};
+
+let moveTouch={x:0,y:0};
+let lookTouch=null;
+
+/* =================================
+   BENUTZEROBERFLÄCHE
+================================= */
+
+function toast(text){
+  $('toast').textContent=text;
+  toastTimer=3;
+}
+
+function updateHUD(){
+
+  $('hp').textContent=Math.ceil(hp);
+  $('credits').textContent=money;
+
+  $('vehicle').textContent=
+    activeCar?activeCar.model.name:'Zu Fuß';
+
+  $('wanted').textContent=
+    '★'.repeat(wanted)+'☆'.repeat(5-wanted);
+}
+
+function startGame(type){
+
+  faction=type;
+  playing=true;
+
+  $('start').classList.add('hidden');
+
+  if('ontouchstart' in window || navigator.maxTouchPoints>0){
+    $('touch').style.display='block';
+  }
+
+  player.position.set(0,0,0);
+  yaw=0;
+  pitch=.22;
+
+  updateHUD();
+
+  toast(
+    type==='police'
+      ?'POLIZEI: Einsatz beginnt!'
+      :'RÄUBER: Willkommen in Neo-Kowloon!'
+  );
+
+  clock.getDelta();
+}
+
+window.startGame=startGame;
+
+/* =================================
+   KOLLISIONEN
+================================= */
+
+function collides(x,z,r){
+
+  for(const b of buildings){
+
+    const closestX=clamp(x,b.x-b.w/2,b.x+b.w/2);
+    const closestZ=clamp(z,b.z-b.d/2,b.z+b.d/2);
+
+    const dx=x-closestX;
+    const dz=z-closestZ;
+
+    if(dx*dx+dz*dz<r*r)return true;
+  }
+
+  return false;
+}
+
+// Bewegungen einzeln auf X und Z prüfen.
+// Dadurch bleibt der Spieler nicht an Ecken hängen.
+function moveWithCollision(object,dx,dz,r){
+
+  let nx=object.position.x+dx;
+  let nz=object.position.z;
+
+  if(!collides(nx,nz,r)){
+    object.position.x=nx;
+  }
+
+  nx=object.position.x;
+  nz=object.position.z+dz;
+
+  if(!collides(nx,nz,r)){
+    object.position.z=nz;
+  }
+
+  object.position.x=clamp(
+    object.position.x,-WORLD/2+5,WORLD/2-5
+  );
+
+  object.position.z=clamp(
+    object.position.z,-WORLD/2+5,WORLD/2-5
+  );
+}
+
+/* =================================
+   KAMERA
+================================= */
+
+function updateCamera(dt){
+
+  const target=activeCar
+    ?activeCar.group.position.clone().add(vec(0,1.2,0))
+    :player.position.clone().add(vec(0,1.5,0));
+
+  const distance=activeCar?12:8;
+
+  const direction=vec(
+    Math.sin(yaw)*Math.cos(pitch),
+    Math.sin(pitch),
+    Math.cos(yaw)*Math.cos(pitch)
+  );
+
+  const desired=target.clone()
+    .addScaledVector(direction,-distance)
+    .add(vec(0,activeCar?2.5:1.2,0));
+
+  camera.position.lerp(
+    desired,1-Math.pow(.001,dt)
+  );
+
+  camera.lookAt(target);
+}
+
+/* =================================
+   STEUERUNG
+================================= */
+
+function getInput(){
+
+  let x=0;
+  let z=0;
+
+  if(keys.KeyW||keys.ArrowUp)z-=1;
+  if(keys.KeyS||keys.ArrowDown)z+=1;
+  if(keys.KeyA||keys.ArrowLeft)x-=1;
+  if(keys.KeyD||keys.ArrowRight)x+=1;
+
+  x+=moveTouch.x;
+  z+=moveTouch.y;
+
+  const length=Math.hypot(x,z);
+
+  if(length>1){
+    x/=length;
+    z/=length;
+  }
+
+  return{x,z,length};
+}
+
+function updatePlayer(dt){
+
+  const input=getInput();
+
+  if(activeCar){
+
+    const c=activeCar;
+
+    const throttle=-input.z;
+    const steering=input.x;
+
+    c.speed+=throttle*c.model.accel*dt;
+
+    c.speed*=Math.pow(.985,dt*60);
+
+    c.speed=clamp(
+      c.speed,-c.model.speed*.45,c.model.speed
+    );
+
+    c.angle+=steering*c.model.turn*dt*
+      (c.speed>=0?1:-1)*
+      Math.min(1,Math.abs(c.speed)/7);
+
+    const dx=Math.sin(c.angle)*c.speed*dt;
+    const dz=Math.cos(c.angle)*c.speed*dt;
+
+    const old=c.group.position.clone();
+
+    moveWithCollision(c.group,dx,dz,2.8);
+
+    if(c.group.position.distanceTo(old)<.001){
+      c.speed=0;
+    }
+
+    c.group.rotation.y=c.angle;
+    player.position.copy(c.group.position);
+    player.rotation.y=c.angle;
+
+  }else{
+
+    const forward=vec(
+      Math.sin(yaw),0,Math.cos(yaw)
+    );
+
+    const right=vec(
+      Math.cos(yaw),0,-Math.sin(yaw)
+    );
+
+    const direction=forward.multiplyScalar(-input.z)
+      .add(right.multiplyScalar(input.x));
+
+    if(direction.length()>0){
+
+      direction.normalize();
+
+      const speed=keys.ShiftLeft||keys.ShiftRight?10:6.5;
+
+      moveWithCollision(
+        player,
+        direction.x*speed*dt,
+        direction.z*speed*dt,
+        .85
+      );
+
+      player.rotation.y=Math.atan2(
+        direction.x,direction.z
+      );
+    }
+  }
+}
+
+/* =================================
+   FAHRZEUGE BENUTZEN
+================================= */
+
+function nearestCar(){
+
+  let best=null;
+  let distance=9;
+
+  for(const c of cars){
+
+    if(c.occupied)continue;
+
+    const d=player.position.distanceTo(c.group.position);
+
+    if(d<distance){
+      distance=d;
+      best=c;
+    }
+  }
+
+  return best;
+}
+
+function useVehicle(){
+
+  if(!$('shop').classList.contains('hidden')){
+    closeShop();
+    return;
+  }
+
+  if(activeCar){
+
+    activeCar.occupied=false;
+    activeCar=null;
+
+    player.position.x+=3;
+    toast('Fahrzeug verlassen');
+
+    updateHUD();
+    return;
+  }
+
+  if(player.position.distanceTo(dealer)<18){
+    $('shop').classList.remove('hidden');
+    return;
+  }
+
+  const c=nearestCar();
+
+  if(c){
+
+    activeCar=c;
+    c.occupied=true;
+
+    player.position.copy(c.group.position);
+
+    toast(c.model.name+' übernommen');
+
+    updateHUD();
+  }
+}
+
+function closeShop(){
+  $('shop').classList.add('hidden');
+}
+
+window.closeShop=closeShop;
+
+function buyCar(index){
+
+  const model=models[index];
+
+  if(model.price>money){
+    toast('Nicht genug Credits!');
+    return;
+  }
+
+  money-=model.price;
+
+  if(activeCar){
+    activeCar.occupied=false;
+    activeCar=null;
+  }
+
+  const c=createCar(
+    dealer.x+12,
+    dealer.z+12,
+    index
+  );
+
+  c.occupied=true;
+  activeCar=c;
+
+  closeShop();
+  updateHUD();
+
+  toast(model.name+' gekauft!');
+}
+
+window.buyCar=buyCar;
+
+/* =================================
+   TASTATUR UND MAUS
+================================= */
+
+document.addEventListener('keydown',e=>{
+
+  keys[e.code]=true;
+
+  if(e.code==='KeyE'&&playing){
+    useVehicle();
+  }
+});
+
+document.addEventListener('keyup',e=>{
+  keys[e.code]=false;
+});
+
+renderer.domElement.addEventListener('click',()=>{
+
+  if(playing &&
+    !('ontouchstart' in window)){
+    renderer.domElement.requestPointerLock?.();
+  }
+});
+
+document.addEventListener('mousemove',e=>{
+
+  if(document.pointerLockElement===renderer.domElement){
+
+    yaw-=e.movementX*.003;
+
+    pitch=clamp(
+      pitch+e.movementY*.002,
+      -.3,.85
+    );
+  }
+});
+
+/* =================================
+   MOBILE STEUERUNG
+================================= */
+
+const stick=$('stick');
+const knob=$('knob');
+
+function joystick(e){
+
+  const r=stick.getBoundingClientRect();
+
+  let dx=e.clientX-r.left-r.width/2;
+  let dy=e.clientY-r.top-r.height/2;
+
+  const length=Math.hypot(dx,dy);
+
+  if(length>45){
+    dx*=45/length;
+    dy*=45/length;
+  }
+
+  moveTouch.x=dx/45;
+  moveTouch.y=dy/45;
+
+  knob.style.transform=
+    `translate(calc(-50% + ${dx}px),calc(-50% + ${dy}px))`;
+}
+
+stick.addEventListener('pointerdown',e=>{
+  stick.setPointerCapture(e.pointerId);
+  joystick(e);
+});
+
+stick.addEventListener('pointermove',e=>{
+  if(e.buttons)joystick(e);
+});
+
+function resetJoystick(){
+  moveTouch={x:0,y:0};
+  knob.style.transform='translate(-50%,-50%)';
+}
+
+stick.addEventListener('pointerup',resetJoystick);
+stick.addEventListener('pointercancel',resetJoystick);
+
+$('use').addEventListener('pointerdown',useVehicle);
+
+$('look').addEventListener('pointerdown',e=>{
+  lookTouch={x:e.clientX,y:e.clientY};
+  $('look').setPointerCapture(e.pointerId);
+});
+
+$('look').addEventListener('pointermove',e=>{
+
+  if(!lookTouch)return;
+
+  yaw-=(e.clientX-lookTouch.x)*.008;
+
+  pitch=clamp(
+    pitch+(e.clientY-lookTouch.y)*.005,
+    -.3,.85
+  );
+
+  lookTouch={x:e.clientX,y:e.clientY};
+});
+
+$('look').addEventListener('pointerup',()=>{
+  lookTouch=null;
+});
+
+$('look').addEventListener('pointercancel',()=>{
+  lookTouch=null;
+});
+
+/* =================================
+   MISSIONEN
+================================= */
+
+let missionActive=false;
+
+function updateMission(dt){
+
+  if(!missionActive){
+
+    missionTimer-=dt;
+
+    if(missionTimer<=0){
+
+      mission=vec(
+        rand(-420,420),0,
+        rand(-420,420)
+      );
+
+      missionActive=true;
+
+      $('mission').textContent=
+        'NEUES ZIEL · Fahre zum goldenen Marker';
+
+      dealerMarker.material.color.set(0xffcc00);
+
+      toast('NEUE MISSION VERFÜGBAR');
+    }
+
+  }else{
+
+    dealerMarker.position.set(
+      mission.x,.25,mission.z
+    );
+
+    const position=activeCar
+      ?activeCar.group.position
+      :player.position;
+
+    if(position.distanceTo(mission)<12){
+
+      money+=500;
+
+      missionActive=false;
+      missionTimer=25;
+
+      mission=null;
+
+      dealerMarker.position.set(
+        dealer.x,.25,dealer.z
+      );
+
+      dealerMarker.material.color.set(0x35ff64);
+
+      $('mission').textContent=
+        'MISSION ERFÜLLT · +500 CREDITS';
+
+      toast('MISSION ERFÜLLT +500 CREDITS');
+
+      updateHUD();
+    }
+  }
+}
+
+/* =================================
+   MINIMAP
+================================= */
+
+function updateMap(){
+
+  const canvas=$('map');
+  const ctx=canvas.getContext('2d');
+
+  ctx.clearRect(0,0,150,150);
+
+  ctx.fillStyle='#101e2b';
+  ctx.fillRect(0,0,150,150);
+
+  const position=activeCar
+    ?activeCar.group.position
+    :player.position;
+
+  ctx.strokeStyle='#657c8e';
+  ctx.lineWidth=3;
+
+  for(let i=-5;i<=5;i++){
+
+    const p=75+i*10;
+
+    ctx.beginPath();
+    ctx.moveTo(p,0);
+    ctx.lineTo(p,150);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(0,p);
+    ctx.lineTo(150,p);
+    ctx.stroke();
+  }
+
+  // Händler
+  ctx.fillStyle='#35ff64';
+
+  const dx=75+(dealer.x-position.x)*.12;
+  const dy=75+(dealer.z-position.z)*.12;
+
+  ctx.fillRect(dx-3,dy-3,6,6);
+
+  // Mission
+  if(missionActive){
+
+    ctx.fillStyle='#ffd400';
+
+    ctx.beginPath();
+    ctx.arc(
+      75+(mission.x-position.x)*.12,
+      75+(mission.z-position.z)*.12,
+      4,0,Math.PI*2
+    );
+    ctx.fill();
+  }
+
+  // Spieler
+  ctx.fillStyle='#00eaff';
+  ctx.beginPath();
+  ctx.arc(75,75,5,0,Math.PI*2);
+  ctx.fill();
+}
+
+/* =================================
+   HINWEISE
+================================= */
+
+function updateHints(){
+
+  if(activeCar){
+    $('hint').textContent='E – FAHRZEUG VERLASSEN';
+    return;
+  }
+
+  if(player.position.distanceTo(dealer)<20){
+    $('hint').textContent='E – FAHRZEUGHÄNDLER';
+    return;
+  }
+
+  const c=nearestCar();
+
+  if(c){
+    $('hint').textContent=
+      'E – '+c.model.name+' EINSTEIGEN';
+  }else{
+    $('hint').textContent='';
+  }
+}
+
+/* =================================
+   HAUPTSCHLEIFE
+================================= */
+
+function animate(){
+
+  requestAnimationFrame(animate);
+
+  const dt=Math.min(clock.getDelta(),.04);
+
+  if(playing &&
+    $('shop').classList.contains('hidden')){
+
+    updatePlayer(dt);
+    updateCamera(dt);
+    updateMission(dt);
+    updateMap();
+    updateHints();
+    updateHUD();
+
+    if(toastTimer>0){
+
+      toastTimer-=dt;
+
+      if(toastTimer<=0){
+        $('toast').textContent='';
+      }
+    }
+
+  }else if(!playing){
+
+    const t=clock.elapsedTime*.08;
+
+    camera.position.set(
+      Math.sin(t)*105,
+      75,
+      Math.cos(t)*105
+    );
+
+    camera.lookAt(0,0,0);
+  }
+
+  renderer.render(scene,camera);
+}
+
+animate();
+
+/* =================================
+   FENSTERGRÖSSE
+================================= */
+
+addEventListener('resize',()=>{
+
+  camera.aspect=innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+
+  renderer.setSize(innerWidth,innerHeight);
+  renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+});
+
+</script>
+</body>
+</html>
