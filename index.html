@@ -1,0 +1,1051 @@
+
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>NEONSHIELD 2066</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{overflow:hidden;background:#080d18;color:white;font-family:Arial,sans-serif}
+canvas{display:block}
+button{cursor:pointer;color:#00eaff;background:#071b2a;border:1px solid #00eaff;padding:11px 17px;border-radius:6px;font-weight:bold}
+button:hover{background:#00aabb;color:white}
+#screen,#menu{position:absolute;inset:0;z-index:10;background:radial-gradient(#172d48,#030611);display:flex;flex-direction:column;justify-content:center;align-items:center;gap:17px;text-align:center;padding:20px}
+#screen h1{font-size:clamp(35px,8vw,75px);letter-spacing:5px;text-shadow:0 0 20px #00eaff}
+#screen h1 span{color:#ff008c}
+h2{color:#00eaff;letter-spacing:3px}
+p{color:#a6c6e2;line-height:1.7;max-width:650px}
+.hidden{display:none!important}
+#hud{position:absolute;inset:0;pointer-events:none}
+.panel{background:#061322dd;border:1px solid #00dfff;border-radius:8px;padding:11px 14px;box-shadow:0 0 15px #00cfff33}
+#stats{position:absolute;left:12px;top:12px;min-width:185px;font-size:13px;line-height:1.8}
+#stats b{color:#00eaff}
+#money{color:#ffd400;font-weight:bold}
+#mission{position:absolute;top:12px;left:50%;transform:translateX(-50%);text-align:center;font-size:13px;max-width:45vw}
+#minimap{position:absolute;right:12px;top:12px;width:155px;height:155px;border:2px solid #00dfff;border-radius:9px;background:#091522}
+#hint{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);color:#00eaff;font-weight:bold;text-shadow:0 0 10px #00dfff;text-align:center}
+#toast{position:absolute;top:28%;width:100%;text-align:center;color:#ffd400;font-weight:bold;text-shadow:0 0 12px #ffcc00}
+#controls{position:absolute;bottom:12px;left:12px;font-size:11px;line-height:1.6;color:#a6c6e2;text-shadow:0 1px 3px black}
+#quick{position:absolute;right:15px;bottom:18px;display:flex;gap:6px;pointer-events:auto}
+#quick button{padding:9px;font-size:12px}
+#menu{z-index:12;background:#030914f5}
+#menu button{min-width:190px}
+#touch{display:none;position:absolute;inset:0;pointer-events:none}
+#stick{position:absolute;bottom:25px;left:20px;width:125px;height:125px;border:2px solid #00eaff88;border-radius:50%;background:#00eaff18;pointer-events:auto;touch-action:none}
+#knob{position:absolute;left:50%;top:50%;width:43px;height:43px;border-radius:50%;background:#00dfff;transform:translate(-50%,-50%)}
+#mobileLook{position:absolute;right:0;top:20%;width:43%;height:48%;pointer-events:auto;touch-action:none}
+#fire,#use{position:absolute;pointer-events:auto;touch-action:none;border-radius:50%;width:72px;height:72px}
+#fire{right:18px;bottom:35px}
+#use{right:100px;bottom:25px;width:60px;height:60px}
+#wardrobe{position:absolute;inset:0;z-index:15;background:#030914f5;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:13px}
+#wardrobe button{min-width:210px}
+#wardrobe h2{margin-bottom:8px}
+#crosshair{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#00eaff;font-size:22px;text-shadow:0 0 8px #00eaff}
+@media(max-width:600px){
+#stats{font-size:11px;min-width:145px;padding:7px}
+#minimap{width:120px;height:120px}
+#mission{top:165px;max-width:90vw}
+#controls{display:none}
+}
+</style>
+</head>
+<body>
+
+<div id="screen">
+<h1>NEON<span>SHIELD</span> 2066</h1>
+<h2>OPEN WORLD CITY</h2>
+<p>
+NEO-KOWLOON – DAS JAHR 2066<br>
+Eine riesige Cyberpunk-Stadt. Konzerne, Gangs, Polizei und gefährliche Straßen.<br>
+Erkunde die Stadt, kämpfe, kaufe Waffen und Kleidung und fahre schnelle Autos.
+</p>
+<button onclick="start('police')">◈ ALS POLIZIST SPIELEN</button>
+<button onclick="start('robber')">◈ ALS GANGSTER SPIELEN</button>
+<p>WASD bewegen · Maus Kamera · E benutzen · F schießen · 1–3 Waffen · C Kleidung</p>
+</div>
+
+<div id="hud">
+<div id="stats" class="panel">
+<div>❤️ Gesundheit: <b id="hp">100</b></div>
+<div>💰 Credits: <span id="money">1500</span></div>
+<div>🚗 Fahrzeug: <b id="vehicle">Zu Fuß</b></div>
+<div>🔫 Waffe: <b id="weapon">Pistole</b></div>
+<div>👕 Kleidung: <b id="clothes">Streetwear</b></div>
+<div>⭐ Fahndung: <b id="wanted">☆☆☆☆☆</b></div>
+<div>🎯 Kills: <b id="kills">0</b></div>
+</div>
+<div id="mission" class="panel">NEO-KOWLOON · FREIE WELT</div>
+<canvas id="minimap" width="155" height="155"></canvas>
+<div id="hint"></div>
+<div id="toast"></div>
+<div id="crosshair">+</div>
+<div id="controls">
+WASD – Bewegung / Fahren<br>
+MAUS – Kamera drehen<br>
+E – Fahrzeug benutzen<br>
+F / Linksklick – Schießen<br>
+1–3 – Waffen wechseln<br>
+C – Kleidung<br>
+SHIFT – Sprint<br>
+ESC – Maus freigeben
+</div>
+<div id="quick">
+<button onclick="openWardrobe()">👕 STYLE</button>
+<button onclick="switchWeapon(1)">🔫 1</button>
+<button onclick="switchWeapon(2)">⚡ 2</button>
+<button onclick="switchWeapon(3)">💥 3</button>
+</div>
+</div>
+
+<div id="touch">
+<div id="stick"><div id="knob"></div></div>
+<div id="mobileLook"></div>
+<button id="fire">FEUER</button>
+<button id="use">E</button>
+</div>
+
+<div id="menu" class="hidden">
+<h1>NEO-KOWLOON</h1>
+<h2>FAHRZEUGE & HÄNDLER</h2>
+<button onclick="buyCar(0)">KAZE GT – KOSTENLOS</button>
+<button onclick="buyCar(1)">RONIN V8 – 900 ₡</button>
+<button onclick="buyCar(2)">NYX PHANTOM – 2200 ₡</button>
+<button onclick="buyCar(3)">AKIRA TYPE-R – 4500 ₡</button>
+<button onclick="closeMenu()">ZURÜCK</button>
+</div>
+
+<div id="wardrobe" class="hidden">
+<h1>CHARAKTER STUDIO</h1>
+<h2>KLEIDUNG & AUSRÜSTUNG</h2>
+<button onclick="changeClothes(0)">STREETWEAR – KOSTENLOS</button>
+<button onclick="changeClothes(1)">CYBERPUNK ARMOR – 300 ₡</button>
+<button onclick="changeClothes(2)">POLIZEI UNIFORM – 500 ₡</button>
+<button onclick="changeClothes(3)">NEON JACKEN – 700 ₡</button>
+<button onclick="changeClothes(4)">ELITE OUTFIT – 1200 ₡</button>
+<button onclick="closeWardrobe()">SCHLIESSEN</button>
+</div>
+
+<script type="module">
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+
+const $=id=>document.getElementById(id);
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0x657f99);
+scene.fog=new THREE.Fog(0x657f99,100,850);
+
+const camera=new THREE.PerspectiveCamera(68,innerWidth/innerHeight,.1,1400);
+const renderer=new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(innerWidth,innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.shadowMap.enabled=true;
+renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.outputColorSpace=THREE.SRGBColorSpace;
+renderer.toneMapping=THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure=1.25;
+document.body.appendChild(renderer.domElement);
+
+const clock=new THREE.Clock();
+const WORLD=1800,CELL=120,ROAD=28;
+const rand=(a,b)=>a+Math.random()*(b-a);
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const V=(x,y,z)=>new THREE.Vector3(x,y,z);
+
+scene.add(new THREE.HemisphereLight(0xc8e5ff,0x28313b,2.1));
+const sun=new THREE.DirectionalLight(0xffe3c1,3);
+sun.position.set(-180,260,120);
+sun.castShadow=true;
+sun.shadow.mapSize.set(2048,2048);
+sun.shadow.camera.left=-260;
+sun.shadow.camera.right=260;
+sun.shadow.camera.top=260;
+sun.shadow.camera.bottom=-260;
+sun.shadow.camera.far=700;
+scene.add(sun);
+
+const ground=new THREE.Mesh(
+new THREE.PlaneGeometry(WORLD,WORLD),
+new THREE.MeshStandardMaterial({color:0x555e5a,roughness:1})
+);
+ground.rotation.x=-Math.PI/2;
+ground.receiveShadow=true;
+scene.add(ground);
+
+const roadMat=new THREE.MeshStandardMaterial({color:0x24282d,roughness:.95});
+const lineMat=new THREE.MeshStandardMaterial({color:0xe3cf92});
+const pavementMat=new THREE.MeshStandardMaterial({color:0x8b9290});
+const buildingMats=[
+0x687784,0x89827a,0x586875,0x999184,
+0x4b606b,0x77706d,0x888d92,0x545d68
+].map(c=>new THREE.MeshStandardMaterial({color:c,roughness:.8}));
+
+function box(x,y,z,sx,sy,sz,mat,shadow=true){
+const m=new THREE.Mesh(new THREE.BoxGeometry(sx,sy,sz),mat);
+m.position.set(x,y,z);
+m.castShadow=shadow;
+m.receiveShadow=true;
+scene.add(m);
+return m;
+}
+
+// Straßen
+for(let i=-8;i<=8;i++){
+let p=i*CELL;
+box(p,.02,0,ROAD,.06,WORLD,roadMat,false);
+box(0,.02,p,WORLD,.06,ROAD,roadMat,false);
+
+box(p+ROAD/2,.04,0,3,.08,WORLD,pavementMat,false);
+box(0,.04,p+ROAD/2,WORLD,.08,3,pavementMat,false);
+
+for(let k=-7;k<=7;k++){
+box(p,.07,k*CELL,1.1,.04,7,lineMat,false);
+box(k*CELL,.07,p,7,.04,1.1,lineMat,false);
+}
+}
+
+// Gebäude
+const buildings=[];
+const windowMat=new THREE.MeshStandardMaterial({
+color:0x8cdff0,emissive:0x246b83,emissiveIntensity:.55
+});
+for(let x=-7;x<=7;x++){
+for(let z=-7;z<=7;z++){
+if(Math.random()<.09)continue;
+
+let px=x*CELL+rand(-31,31);
+let pz=z*CELL+rand(-31,31);
+let w=rand(38,70),d=rand(38,70),h=rand(25,125);
+let mat=buildingMats[Math.floor(Math.random()*buildingMats.length)];
+
+box(px,h/2,pz,w,h,d,mat);
+buildings.push({x:px,z:pz,w,d,h});
+
+if(Math.random()<.7){
+box(px+rand(-10,10),h+2,pz+rand(-10,10),
+w*.3,4,d*.3,new THREE.MeshStandardMaterial({color:0x303d49}));
+}
+
+// Fensterreihen
+for(let side of [-1,1]){
+for(let row=1;row<h/8;row++){
+for(let col=-1;col<=1;col++){
+let win=box(px+col*w*.25,row*7,pz+side*(d/2+.06),
+w*.12,2.5,.12,windowMat,false);
+}
+}
+}
+}
+}
+
+// Palmen
+const palmMat=new THREE.MeshStandardMaterial({color:0x725037});
+const leafMat=new THREE.MeshStandardMaterial({color:0x287a43,side:THREE.DoubleSide});
+function palm(x,z){
+let t=new THREE.Mesh(new THREE.CylinderGeometry(.3,.55,9,7),palmMat);
+t.position.set(x,4.5,z);
+scene.add(t);
+for(let i=0;i<8;i++){
+let a=i*Math.PI/4;
+let l=new THREE.Mesh(new THREE.ConeGeometry(1.2,7,5),leafMat);
+l.position.set(x+Math.cos(a)*2.4,8,z+Math.sin(a)*2.4);
+l.rotation.z=Math.PI/2;
+l.rotation.y=-a;
+scene.add(l);
+}
+}
+for(let x=-7;x<=7;x++){
+for(let z=-7;z<=7;z++){
+if(Math.random()<.8)palm(x*CELL+ROAD*.9,z*CELL+rand(-35,35));
+}
+}
+
+// Straßenlaternen
+const lampMat=new THREE.MeshStandardMaterial({color:0x4b5861,metalness:.6});
+const lightMat=new THREE.MeshStandardMaterial({
+color:0xffe5ae,emissive:0xffbb55,emissiveIntensity:2
+});
+for(let x=-7;x<=7;x++){
+for(let z=-7;z<=7;z++){
+if(Math.random()<.5)continue;
+let px=x*CELL+ROAD*.9,pz=z*CELL+ROAD*.9;
+box(px,4,pz,.3,8,.3,lampMat);
+box(px+1,8,pz,.5,.3,.5,lightMat,false);
+}
+}
+
+// Spielercharakter
+const player=new THREE.Group();
+scene.add(player);
+
+const skinMat=new THREE.MeshStandardMaterial({color:0xc58b69});
+const clothesMat=new THREE.MeshStandardMaterial({color:0x172f4a});
+const pantsMat=new THREE.MeshStandardMaterial({color:0x20232b});
+const shoeMat=new THREE.MeshStandardMaterial({color:0x111820});
+const hairMat=new THREE.MeshStandardMaterial({color:0x171b25});
+
+const torso=new THREE.Mesh(
+new THREE.CapsuleGeometry(.48,.85,5,10),clothesMat);
+torso.position.y=1.55;
+player.add(torso);
+
+const head=new THREE.Mesh(new THREE.SphereGeometry(.34,16,12),skinMat);
+head.position.y=2.55;
+player.add(head);
+
+const hair=new THREE.Mesh(new THREE.SphereGeometry(.35,12,8),hairMat);
+hair.position.set(0,2.75,0);
+hair.scale.set(1, .55,1);
+player.add(hair);
+
+const armL=new THREE.Mesh(new THREE.CapsuleGeometry(.13,.65,4,8),clothesMat);
+armL.position.set(-.58,1.65,0);
+armL.rotation.z=.12;
+player.add(armL);
+
+const armR=new THREE.Mesh(new THREE.CapsuleGeometry(.13,.65,4,8),clothesMat);
+armR.position.set(.58,1.65,0);
+armR.rotation.z=-.12;
+player.add(armR);
+
+const legL=new THREE.Mesh(new THREE.CapsuleGeometry(.16,.65,4,8),pantsMat);
+legL.position.set(-.22,.55,0);
+player.add(legL);
+
+const legR=new THREE.Mesh(new THREE.CapsuleGeometry(.16,.65,4,8),pantsMat);
+legR.position.set(.22,.55,0);
+player.add(legR);
+
+const shoeL=new THREE.Mesh(new THREE.BoxGeometry(.35,.2,.55),shoeMat);
+shoeL.position.set(-.22,.13,-.1);
+player.add(shoeL);
+
+const shoeR=new THREE.Mesh(new THREE.BoxGeometry(.35,.2,.55),shoeMat);
+shoeR.position.set(.22,.13,-.1);
+player.add(shoeR);
+
+player.position.set(0,0,0);
+
+// Kleidung
+const outfits=[
+{body:0x172f4a,pants:0x20232b,name:'Streetwear'},
+{body:0x303d55,pants:0x10151d,name:'Cyberpunk Armor'},
+{body:0x182b4a,pants:0x17213b,name:'Polizei Uniform'},
+{body:0x9b176f,pants:0x27203d,name:'Neon Jacke'},
+{body:0x202a35,pants:0x111820,name:'Elite Outfit'}
+];
+let outfitIndex=0;
+
+// Waffen
+const weapons=[
+{name:'Pistole',damage:25,delay:.25,range:95,color:0x00ffff},
+{name:'Plasma',damage:40,delay:.4,range:110,color:0x9d4dff},
+{name:'Heavy Blaster',damage:65,delay:.7,range:120,color:0xff8a00}
+];
+let weaponIndex=0;
+
+// Fahrzeuge
+const models=[
+{name:'KAZE GT',price:0,color:0x00cde8,speed:36,accel:25,turn:2.3},
+{name:'RONIN V8',price:900,color:0xed1685,speed:43,accel:30,turn:2.4},
+{name:'NYX PHANTOM',price:2200,color:0x853fe5,speed:49,accel:35,turn:2.5},
+{name:'AKIRA TYPE-R',price:4500,color:0x43e74e,speed:57,accel:42,turn:2.7}
+];
+const cars=[];
+const glassMat=new THREE.MeshStandardMaterial({color:0x142e40,metalness:.7,roughness:.2});
+const tireMat=new THREE.MeshStandardMaterial({color:0x111111});
+
+function makeCar(x,z,index){
+const model=models[index];
+const group=new THREE.Group();
+const paint=new THREE.MeshStandardMaterial({
+color:model.color,metalness:.55,roughness:.3
+});
+
+let body=new THREE.Mesh(new THREE.BoxGeometry(4.6,1.05,2.2),paint);
+body.position.y=.9;
+group.add(body);
+
+let cabin=new THREE.Mesh(new THREE.BoxGeometry(2.35,.95,1.85),glassMat);
+cabin.position.set(-.35,1.75,0);
+group.add(cabin);
+
+let roof=new THREE.Mesh(new THREE.BoxGeometry(1.5,.12,1.75),paint);
+roof.position.set(-.35,2.24,0);
+group.add(roof);
+
+for(let side of [-1,1]){
+for(let front of [-1,1]){
+let wheel=new THREE.Mesh(new THREE.CylinderGeometry(.48,.48,.32,16),tireMat);
+wheel.rotation.x=Math.PI/2;
+wheel.position.set(front*1.45,.48,side*1.13);
+group.add(wheel);
+}
+}
+group.position.set(x,0,z);
+scene.add(group);
+
+let car={group,model,index,speed:0,angle:0,occupied:false};
+cars.push(car);
+return car;
+}
+
+for(let i=0;i<32;i++){
+let x=rand(-850,850),z=rand(-850,850);
+if(Math.abs(x%CELL)<28)x+=38;
+if(Math.abs(z%CELL)<28)z+=38;
+makeCar(x,z,Math.floor(Math.random()*2));
+}
+const dealer=V(-480,0,-480);
+makeCar(-480,-510,1);
+
+const dealerMarker=new THREE.Mesh(
+new THREE.CylinderGeometry(8,8,.2,24),
+new THREE.MeshStandardMaterial({color:0x35ff55,emissive:0x18ff33})
+);
+dealerMarker.position.set(dealer.x,.3,dealer.z);
+scene.add(dealerMarker);
+
+// NPCs und Gegner
+const npcs=[];
+function spawnNPC(x,z,hostile=false){
+let g=new THREE.Group();
+let mat=new THREE.MeshStandardMaterial({color:hostile?0xe5234f:0x579acb});
+let b=new THREE.Mesh(new THREE.CapsuleGeometry(.42,.9,4,8),mat);
+b.position.y=1.4;
+g.add(b);
+let h=new THREE.Mesh(new THREE.SphereGeometry(.3,12,12),skinMat);
+h.position.y=2.3;
+g.add(h);
+g.position.set(x,0,z);
+scene.add(g);
+npcs.push({g,hp:hostile?60:100,hostile,alive:true,attack:0});
+}
+for(let i=0;i<35;i++)spawnNPC(rand(-700,700),rand(-700,700));
+for(let i=0;i<12;i++)spawnNPC(rand(-500,500),rand(-500,500),true);
+
+// Zustand
+let faction='robber',money=1500,hp=100,kills=0,wanted=0;
+let activeCar=null,playing=false,shooting=false;
+let mission=null,missionTimer=5;
+let yaw=0,pitch=.22;
+let messageTimer=0;
+let mouseDown=false;
+let touchMove={x:0,y:0};
+let lookTouch=null;
+let walkTime=0;
+const keys={};
+const bullets=[];
+
+function toast(s){
+$('toast').textContent=s;
+messageTimer=2.5;
+}
+
+function updateHUD(){
+$('hp').textContent=Math.ceil(hp);
+$('money').textContent=money;
+$('kills').textContent=kills;
+$('wanted').textContent='★'.repeat(wanted)+'☆'.repeat(5-wanted);
+$('vehicle').textContent=activeCar?activeCar.model.name:'Zu Fuß';
+$('weapon').textContent=weapons[weaponIndex].name;
+$('clothes').textContent=outfits[outfitIndex].name;
+}
+
+function start(f){
+faction=f;
+playing=true;
+$('screen').classList.add('hidden');
+if('ontouchstart' in window||navigator.maxTouchPoints>0){
+$('touch').style.display='block';
+}
+player.position.set(0,0,0);
+yaw=0;
+pitch=.22;
+updateHUD();
+toast(f==='police'?'POLIZEI: Einsatz beginnt!':'GANGSTER: Willkommen in Neo-Kowloon!');
+clock.getDelta();
+}
+window.start=start;
+
+function cameraUpdate(dt){
+const target=activeCar?
+activeCar.group.position.clone().add(V(0,1,0)):
+player.position.clone().add(V(0,1.3,0));
+
+const distance=activeCar?11:7;
+const height=activeCar?4:2.4;
+
+const direction=V(
+Math.sin(yaw)*Math.cos(pitch),
+Math.sin(pitch),
+Math.cos(yaw)*Math.cos(pitch)
+);
+
+const desired=target.clone()
+.add(direction.multiplyScalar(-distance))
+.add(V(0,height,0));
+
+camera.position.lerp(desired,1-Math.pow(.001,dt));
+camera.lookAt(target);
+}
+
+// Maussteuerung
+renderer.domElement.addEventListener('click',()=>{
+if(playing&&!('ontouchstart' in window)){
+renderer.domElement.requestPointerLock?.();
+}
+});
+
+document.addEventListener('mousemove',e=>{
+if(document.pointerLockElement===renderer.domElement){
+yaw-=e.movementX*.003;
+pitch=clamp(pitch+e.movementY*.002,-.35,.8);
+}
+});
+
+document.addEventListener('mousedown',e=>{
+if(e.button===0&&playing)shooting=true;
+});
+document.addEventListener('mouseup',e=>{
+if(e.button===0)shooting=false;
+});
+
+document.addEventListener('keydown',e=>{
+keys[e.code]=true;
+if(e.code==='KeyE'&&playing)use();
+if(e.code==='KeyF')shooting=true;
+if(e.code==='KeyC'&&playing)openWardrobe();
+if(e.code==='Digit1')switchWeapon(1);
+if(e.code==='Digit2')switchWeapon(2);
+if(e.code==='Digit3')switchWeapon(3);
+});
+document.addEventListener('keyup',e=>{
+keys[e.code]=false;
+if(e.code==='KeyF')shooting=false;
+});
+
+// Touchsteuerung
+const stick=$('stick'),knob=$('knob');
+stick.addEventListener('pointerdown',e=>{
+stick.setPointerCapture(e.pointerId);
+joy(e);
+});
+stick.addEventListener('pointermove',e=>{
+if(e.buttons)joy(e);
+});
+function joy(e){
+let r=stick.getBoundingClientRect();
+let dx=e.clientX-r.left-r.width/2;
+let dy=e.clientY-r.top-r.height/2;
+let d=Math.hypot(dx,dy);
+if(d>45){dx*=45/d;dy*=45/d;}
+touchMove.x=dx/45;
+touchMove.y=dy/45;
+knob.style.transform=`translate(calc(-50% + ${dx}px),calc(-50% + ${dy}px))`;
+}
+stick.addEventListener('pointerup',()=>{
+touchMove={x:0,y:0};
+knob.style.transform='translate(-50%,-50%)';
+});
+$('fire').addEventListener('pointerdown',()=>shooting=true);
+$('fire').addEventListener('pointerup',()=>shooting=false);
+$('fire').addEventListener('pointerleave',()=>shooting=false);
+$('use').addEventListener('pointerdown',use);
+
+$('mobileLook').addEventListener('pointerdown',e=>{
+lookTouch={x:e.clientX,y:e.clientY};
+$('mobileLook').setPointerCapture(e.pointerId);
+});
+$('mobileLook').addEventListener('pointermove',e=>{
+if(!lookTouch)return;
+yaw-=(e.clientX-lookTouch.x)*.008;
+pitch=clamp(pitch+(e.clientY-lookTouch.y)*.005,-.35,.8);
+lookTouch={x:e.clientX,y:e.clientY};
+});
+$('mobileLook').addEventListener('pointerup',()=>lookTouch=null);
+
+// Eingaben
+function input(){
+let x=0,z=0;
+if(keys.KeyW||keys.ArrowUp)z-=1;
+if(keys.KeyS||keys.ArrowDown)z+=1;
+if(keys.KeyA||keys.ArrowLeft)x-=1;
+if(keys.KeyD||keys.ArrowRight)x+=1;
+x+=touchMove.x;
+z+=touchMove.y;
+let len=Math.hypot(x,z);
+if(len>1){x/=len;z/=len;}
+return{x,z,len};
+}
+
+function collide(x,z,r){
+for(let b of buildings){
+if(Math.abs(x-b.x)<b.w/2+r&&Math.abs(z-b.z)<b.d/2+r)return true;
+}
+return false;
+}
+
+function nearestCar(){
+let best=null,d=9;
+for(let c of cars){
+if(c.occupied)continue;
+let distance=player.position.distanceTo(c.group.position);
+if(distance<d){best=c;d=distance;}
+}
+return best;
+}
+
+function use(){
+if(!$('menu').classList.contains('hidden')){closeMenu();return;}
+if(!$('wardrobe').classList.contains('hidden')){closeWardrobe();return;}
+
+if(activeCar){
+activeCar.occupied=false;
+player.position.copy(activeCar.group.position);
+player.position.x+=5;
+activeCar=null;
+toast('Fahrzeug verlassen');
+return;
+}
+
+if(player.position.distanceTo(dealer)<22){
+$('menu').classList.remove('hidden');
+return;
+}
+
+let c=nearestCar();
+if(c){
+activeCar=c;
+c.occupied=true;
+toast(c.model.name+' übernommen');
+}
+}
+
+function closeMenu(){
+$('menu').classList.add('hidden');
+}
+window.closeMenu=closeMenu;
+
+function buyCar(index){
+let m=models[index];
+if(m.price>money){toast('Nicht genug Credits!');return;}
+money-=m.price;
+let c=makeCar(dealer.x+15, dealer.z+20,index);
+if(activeCar)activeCar.occupied=false;
+activeCar=c;
+c.occupied=true;
+closeMenu();
+updateHUD();
+toast(m.name+' gekauft!');
+}
+window.buyCar=buyCar;
+
+// Kleidung
+function openWardrobe(){
+if(!playing)return;
+$('wardrobe').classList.remove('hidden');
+}
+window.openWardrobe=openWardrobe;
+
+function closeWardrobe(){
+$('wardrobe').classList.add('hidden');
+}
+window.closeWardrobe=closeWardrobe;
+
+function changeClothes(index){
+const prices=[0,300,500,700,1200];
+if(money<prices[index]){
+toast('Nicht genug Credits!');
+return;
+}
+if(index!==outfitIndex){
+money-=prices[index];
+outfitIndex=index;
+clothesMat.color.setHex(outfits[index].body);
+pantsMat.color.setHex(outfits[index].pants);
+updateHUD();
+toast('Outfit gewechselt: '+outfits[index].name);
+}
+}
+window.changeClothes=changeClothes;
+
+// Waffenwechsel
+function switchWeapon(number){
+if(!playing)return;
+weaponIndex=clamp(number-1,0,2);
+updateHUD();
+toast('Waffe: '+weapons[weaponIndex].name);
+}
+window.switchWeapon=switchWeapon;
+
+// Schießen
+function shoot(){
+if(!shooting||!playing)return;
+if(shoot.cooldown>0)return;
+
+let w=weapons[weaponIndex];
+shoot.cooldown=w.delay;
+
+const origin=activeCar?
+activeCar.group.position.clone().add(V(0,1.6,0)):
+player.position.clone().add(V(0,1.6,0));
+
+const dir=V();
+camera.getWorldDirection(dir);
+
+const mesh=new THREE.Mesh(
+new THREE.SphereGeometry(.13,8,8),
+new THREE.MeshBasicMaterial({color:w.color})
+);
+mesh.position.copy(origin);
+scene.add(mesh);
+
+bullets.push({
+mesh,
+dir:dir.normalize(),
+life:w.range/95,
+damage:w.damage
+});
+}
+shoot.cooldown=0;
+
+function updateBullets(dt){
+for(let i=bullets.length-1;i>=0;i--){
+let b=bullets[i];
+b.mesh.position.addScaledVector(b.dir,95*dt);
+b.life-=dt;
+
+let remove=b.life<=0;
+
+for(let n of npcs){
+if(!n.alive)continue;
+let p=n.g.position.clone().add(V(0,1.4,0));
+if(b.mesh.position.distanceTo(p)<1.3){
+n.hp-=b.damage;
+remove=true;
+
+if(!n.hostile&&faction==='police')wanted=Math.min(5,wanted+1);
+
+if(n.hp<=0){
+n.alive=false;
+n.g.visible=false;
+if(n.hostile){
+kills++;
+money+=100;
+toast('+100 CREDITS');
+}else{
+toast('Ziel ausgeschaltet');
+}
+}
+break;
+}
+}
+
+if(remove){
+scene.remove(b.mesh);
+bullets.splice(i,1);
+}
+}
+}
+
+// Bewegung
+function updatePlayer(dt){
+let inp=input();
+
+let forward=V(-Math.sin(yaw),0,-Math.cos(yaw));
+let right=V(Math.cos(yaw),0,-Math.sin(yaw));
+let move=forward.multiplyScalar(-inp.z).add(right.multiplyScalar(inp.x));
+
+if(activeCar){
+let c=activeCar;
+let throttle=-inp.z;
+let steer=inp.x;
+
+c.speed+=throttle*c.model.accel*dt;
+c.speed*=Math.pow(.985,dt*60);
+c.speed=clamp(c.speed,-c.model.speed*.45,c.model.speed);
+
+c.angle+=steer*c.model.turn*dt*
+(c.speed>=0?1:-1)*Math.min(1,Math.abs(c.speed)/8);
+
+c.group.rotation.y=c.angle;
+
+let nx=c.group.position.x+Math.sin(c.angle)*c.speed*dt;
+let nz=c.group.position.z+Math.cos(c.angle)*c.speed*dt;
+
+if(!collide(nx,nz,2.6)){
+c.group.position.x=nx;
+c.group.position.z=nz;
+}else{
+c.speed*=-.22;
+}
+
+player.position.copy(c.group.position);
+player.rotation.y=c.angle;
+yaw=c.angle;
+}else{
+if(move.length()>0){
+move.normalize();
+let speed=keys.ShiftLeft?10:6.2;
+
+let nx=player.position.x+move.x*speed*dt;
+let nz=player.position.z+move.z*speed*dt;
+
+if(!collide(nx,player.position.z,.7))player.position.x=nx;
+if(!collide(player.position.x,nz,.7))player.position.z=nz;
+
+player.rotation.y=Math.atan2(move.x,move.z);
+
+walkTime+=dt*10;
+legL.rotation.x=Math.sin(walkTime)*.6;
+legR.rotation.x=-Math.sin(walkTime)*.6;
+armL.rotation.x=-Math.sin(walkTime)*.4;
+armR.rotation.x=Math.sin(walkTime)*.4;
+}else{
+legL.rotation.x=0;
+legR.rotation.x=0;
+armL.rotation.x=0;
+armR.rotation.x=0;
+}
+}
+
+player.position.x=clamp(player.position.x,-WORLD/2+8,WORLD/2-8);
+player.position.z=clamp(player.position.z,-WORLD/2+8,WORLD/2-8);
+
+if(shooting)shoot();
+}
+
+// NPCs und Gegner
+function updateNPCs(dt){
+for(let n of npcs){
+if(!n.alive)continue;
+
+if(n.hostile){
+let p=activeCar?activeCar.group.position:player.position;
+let d=n.g.position.distanceTo(p);
+
+if(d<45){
+let dir=p.clone().sub(n.g.position);
+dir.y=0;
+
+if(dir.length()>7){
+n.g.position.addScaledVector(dir.normalize(),dt*2.5);
+}
+
+n.attack-=dt;
+if(d<9&&n.attack<=0){
+hp-=5;
+n.attack=1.1;
+toast('DU WIRST ANGEGRIFFEN!');
+}
+}
+}
+}
+hp=clamp(hp,0,100);
+if(hp<=0){
+hp=100;
+money=Math.max(0,money-250);
+player.position.set(0,0,0);
+if(activeCar){
+activeCar.occupied=false;
+activeCar=null;
+}
+toast('DU WURDEST AUSGESCHALTET – RESPAWN');
+}
+}
+
+// Missionen
+function updateMission(dt){
+if(!mission){
+missionTimer-=dt;
+if(missionTimer<=0){
+let a=rand(0,Math.PI*2);
+let d=rand(180,350);
+
+mission=V(
+clamp(player.position.x+Math.cos(a)*d,-800,800),
+0,
+clamp(player.position.z+Math.sin(a)*d,-800,800)
+);
+
+missionMarker.visible=true;
+$('mission').textContent='MISSION: Fahre zum goldenen Ziel';
+toast('NEUE MISSION VERFÜGBAR');
+}
+return;
+}
+
+missionMarker.position.set(mission.x,.3,mission.z);
+
+let p=activeCar?activeCar.group.position:player.position;
+if(p.distanceTo(mission)<14){
+money+=500;
+mission=null;
+missionTimer=30;
+missionMarker.visible=false;
+$('mission').textContent='MISSION ERFÜLLT · +500 CREDITS';
+toast('MISSION ERFÜLLT +500 ₡');
+}
+}
+
+const missionMarker=new THREE.Mesh(
+new THREE.CylinderGeometry(7,7,.5,24),
+new THREE.MeshStandardMaterial({color:0xffcc00,emissive:0xaa7700})
+);
+missionMarker.visible=false;
+scene.add(missionMarker);
+
+// Minimap
+function minimap(){
+const c=$('minimap').getContext('2d');
+const w=155,h=155,cx=w/2,cy=h/2;
+const scale=.12;
+
+c.clearRect(0,0,w,h);
+c.fillStyle='#091522';
+c.fillRect(0,0,w,h);
+
+// Straßenraster
+c.strokeStyle='#35495b';
+c.lineWidth=2;
+for(let i=-7;i<=7;i++){
+let p=cy+i*CELL*scale;
+c.beginPath();
+c.moveTo(p,0);
+c.lineTo(p,h);
+c.stroke();
+
+c.beginPath();
+c.moveTo(0,p);
+c.lineTo(w,p);
+c.stroke();
+}
+
+// Gebäude als kleine Flächen
+c.fillStyle='#536574';
+for(let b of buildings){
+let x=cx+(b.x-player.position.x)*scale;
+let y=cy+(b.z-player.position.z)*scale;
+let bw=b.w*scale;
+let bh=b.d*scale;
+if(x+bw>=0&&x-bw<=w&&y+bh>=0&&y-bh<=h){
+c.fillRect(x-bw/2,y-bh/2,bw,bh);
+}
+}
+
+// Gegner
+for(let n of npcs){
+if(!n.alive||!n.hostile)continue;
+let x=cx+(n.g.position.x-player.position.x)*scale;
+let y=cy+(n.g.position.z-player.position.z)*scale;
+if(x>=0&&x<=w&&y>=0&&y<=h){
+c.fillStyle='#ff285d';
+c.beginPath();
+c.arc(x,y,3,0,Math.PI*2);
+c.fill();
+}
+}
+
+// Mission
+if(mission){
+let x=cx+(mission.x-player.position.x)*scale;
+let y=cy+(mission.z-player.position.z)*scale;
+c.fillStyle='#ffd400';
+c.beginPath();
+c.arc(x,y,5,0,Math.PI*2);
+c.fill();
+}
+
+// Spieler: richtiger Richtungspfeil
+c.save();
+c.translate(cx,cy);
+
+let rotation=activeCar?activeCar.angle:player.rotation.y;
+c.rotate(-rotation);
+
+c.shadowColor='#00eaff';
+c.shadowBlur=15;
+c.fillStyle='#00f5ff';
+c.strokeStyle='#ffffff';
+c.lineWidth=1.5;
+
+c.beginPath();
+c.moveTo(0,-13);
+c.lineTo(9,10);
+c.lineTo(0,6);
+c.lineTo(-9,10);
+c.closePath();
+c.fill();
+c.stroke();
+
+c.restore();
+
+// Rahmen und Kompass
+c.strokeStyle='#00dfff';
+c.lineWidth=2;
+c.strokeRect(1,1,w-2,h-2);
+
+c.fillStyle='#ffffff';
+c.font='bold 10px Arial';
+c.fillText('N',cx-3,12);
+}
+
+// Hinweise
+function hints(){
+let c=nearestCar();
+if(activeCar){
+$('hint').textContent='E – FAHRZEUG VERLASSEN';
+}else if(player.position.distanceTo(dealer)<22){
+$('hint').textContent='E – FAHRZEUGHÄNDLER';
+}else if(c){
+$('hint').textContent='E – '+c.model.name+' EINSTEIGEN';
+}else{
+$('hint').textContent='';
+}
+}
+
+// Hauptschleife
+function animate(){
+requestAnimationFrame(animate);
+
+let dt=Math.min(clock.getDelta(),.04);
+
+if(playing&&
+$('menu').classList.contains('hidden')&&
+$('wardrobe').classList.contains('hidden')){
+
+if(shoot.cooldown>0)shoot.cooldown-=dt;
+
+updatePlayer(dt);
+updateBullets(dt);
+updateNPCs(dt);
+updateMission(dt);
+cameraUpdate(dt);
+minimap();
+hints();
+updateHUD();
+
+if(messageTimer>0){
+messageTimer-=dt;
+if(messageTimer<=0)$('toast').textContent='';
+}
+}else if(!playing){
+camera.position.x=Math.sin(clock.elapsedTime*.1)*100;
+camera.position.z=Math.cos(clock.elapsedTime*.1)*100;
+camera.position.y=70;
+camera.lookAt(0,0,0);
+}
+
+renderer.render(scene,camera);
+}
+animate();
+
+addEventListener('resize',()=>{
+camera.aspect=innerWidth/innerHeight;
+camera.updateProjectionMatrix();
+renderer.setSize(innerWidth,innerHeight);
+});
+
+</script>
+</body>
+</html>
